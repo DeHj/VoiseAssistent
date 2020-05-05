@@ -38,9 +38,9 @@ public class ParsingHtmlService {
                     }
                     return holidaysStr;
                 }
-                return "Праздников нет"; //holidaysStr == "" ? "Праздников нет" : holidaysStr;
+                return "Праздников нет;"; //holidaysStr == "" ? "Праздников нет" : holidaysStr;
             }
         }
-        return "Праздников нет";
+        return "Праздников нет;";
     }
 }

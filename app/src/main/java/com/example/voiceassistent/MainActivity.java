@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     protected MessageListAdapter messageListAdapter;
     protected TextToSpeech textToSpeech;
 
+    AI hal9000 = new AI();
+
     DBHelper dBHelper;
     SQLiteDatabase database;
 
@@ -111,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         messageListAdapter.messageList.add(new Message(question, true));
 
-        AI.getAnswer(question, new Consumer<String>() {
+        hal9000.getAnswer(question, new Consumer<String>() {
             @Override
             public void accept(String answer) {
                 //messageListAdapter.messageList.add(new Message(question, true));
