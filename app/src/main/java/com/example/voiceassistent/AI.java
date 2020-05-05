@@ -1,15 +1,20 @@
 package com.example.voiceassistent;
 
+import android.os.AsyncTask;
 import android.os.Build;
 
 import androidx.annotation.RequiresApi;
 
 import com.example.voiceassistent.Forecast.ForecastToString;
 
+import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Date;
@@ -18,9 +23,16 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 
 public class AI {
 //    public static Map<String, String> phrases = new HashMap<String, String>() {{
@@ -111,32 +123,124 @@ public class AI {
 
     // Получение ответа от ИИ
     @RequiresApi(api = Build.VERSION_CODES.N)
-    public static void getAnswer(String question, final Consumer<String> callback) {
+    public static void getAnswer(String question, final Consumer<String> callback) throws ParseException {
         question = question.toLowerCase();
 
+        Pattern cityPattern = Pattern.compile("weather in (\\p{L}+)", Pattern.CASE_INSENSITIVE);
+        //Pattern cityPattern = Pattern.compile("погода в городе (\\p{L}+)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = cityPattern.matcher(question);
+
         if (phrases.get(question) != null)
-            callback.accept(phrases.get(question).answer());
-        else
-        {
-            Pattern cityPattern = Pattern.compile("weather in (\\p{L}+)", Pattern.CASE_INSENSITIVE);
-            //Pattern cityPattern = Pattern.compile("погода в городе (\\p{L}+)", Pattern.CASE_INSENSITIVE);
-            Matcher matcher = cityPattern.matcher(question);
-            if (matcher.find()) {
-                String cityName = matcher.group(1);
-                ForecastToString.getForecast(cityName, new Consumer<String>() {
-                    @Override
-                    public void accept(String s) {
-                        callback.accept(s);
+            callback.accept(Objects.requireNonNull(phrases.get(question)).answer());
+        else if (matcher.find()) {
+            String cityName = matcher.group(1);
+            ForecastToString.getForecast(cityName, new Consumer<String>() {
+                @Override
+                public void accept(String s) {
+                    callback.accept(s);
+                }
+            });
+        }
+        else if (question.contains("праздник")) {
+            /*
+            new AsyncTask<String, Integer, String>() {
+                @Override
+                protected String doInBackground(String... strings) {
+                    return null;
+                }
+            }
+            */
+
+            List<String> dates = getDates(question);
+
+            Observable.fromCallable(() -> {
+                String result = "";
+                for (String str : dates) {
+                    try {
+                        result += " " + str + ": " + ParsingHtmlService.getHolyday(str) + "\n";
+                    } catch (IOException e) {
+                        result += " " + str + ": Не могу ответь :(";
                     }
-                });
+                }
+                return result;
+            })
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(callback::accept);
+
+            /*
+            for (String date: dates) {
+                callback.accept(date);
             }
-            else
-            {
-                callback.accept("Не понял вопрос");
-            }
+            callback.accept("Это всё");
+            */
+        }
+        else {
+            callback.accept("Не понял вопрос");
+        }
+    }
+
+    private static String modify(String date) {
+        String[] mas = date.split(" ");
+        Matcher matcher = Pattern.compile("0\\d").matcher(mas[0]);
+        if (matcher.find()) {
+            return date.substring(1);
+        } else {
+            return date;
+        }
+    }
+
+    public static List<String> getDates(String question) throws ParseException {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM YYYY", dateFormatSymbols);
+        String[] blocks = question.split(",");
+
+        Pattern pattern1 = Pattern.compile("\\d{1,2}\\.\\d{1,2}\\.\\d{4}");
+        //Pattern pattern2 = Pattern.compile("\\d{1,2} (\\p{L}+) \\d{4}");
+
+        List<String> result = new ArrayList<String>();
+        Date tmp;
+        for (String block : blocks) {
+            Matcher matcher1 = pattern1.matcher(block);
+            //Matcher matcher2 = pattern2.matcher(block);
+
+            if (block.contains("вчера")) {
+                calendar.add(Calendar.DAY_OF_YEAR, -1);
+                tmp = calendar.getTime();
+                result.add(sdf.format(tmp));
+
+                calendar.add(Calendar.DAY_OF_YEAR, +1);
+            } else if (block.contains("сегодня")) {
+                tmp = calendar.getTime();
+                result.add(sdf.format(tmp));
+            } else if (block.contains("завтра")) {
+                calendar.add(Calendar.DAY_OF_YEAR, +1);
+                tmp = calendar.getTime();
+                result.add(sdf.format(tmp));
+                calendar.add(Calendar.DAY_OF_YEAR, -1);
+            } else if (matcher1.find()) {
+                result.add(sdf.format(Objects.requireNonNull(new SimpleDateFormat("dd.MM.yyyy").
+                        parse(block.substring(matcher1.start(), matcher1.end())))));
+            } /*else if (matcher2.find()) {
+
+                if ()
+                String month = matcher2.group(1);
+                result.add("");
+            }*/
         }
 
+        return result;
     }
+
+    private static DateFormatSymbols dateFormatSymbols = new DateFormatSymbols() {
+        @Override
+        public String[] getMonths() {
+            return new String[]{"января", "февраля", "марта", "апреля", "мая", "июня",
+                    "июля", "августа", "сентября", "октября", "ноября", "декабря"};
+        }
+
+    };
+
 }
 
 

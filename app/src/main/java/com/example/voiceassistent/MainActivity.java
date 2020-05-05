@@ -52,20 +52,26 @@ public class MainActivity extends AppCompatActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onSend();
+                try {
+                    onSend();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
         messageListAdapter.messageList.add(new Message("Привет!", false));
     }
 
-    protected void onSend() {
+    protected void onSend() throws ParseException {
         final String question = questionText.getText().toString();
+
+        messageListAdapter.messageList.add(new Message(question, true));
 
         AI.getAnswer(question, new Consumer<String>() {
             @Override
             public void accept(String answer) {
-                messageListAdapter.messageList.add(new Message(question, true));
+                //messageListAdapter.messageList.add(new Message(question, true));
                 messageListAdapter.messageList.add(new Message(answer, false));
                 messageListAdapter.notifyDataSetChanged();
                 textToSpeech.speak(answer, TextToSpeech.QUEUE_FLUSH, null, null);
