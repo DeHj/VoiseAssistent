@@ -1,6 +1,13 @@
 package com.example.voiceassistent;
 
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
+
+import com.example.voiceassistent.Forecast.ForecastToString;
+
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Locale;
@@ -11,6 +18,9 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AI {
 //    public static Map<String, String> phrases = new HashMap<String, String>() {{
@@ -91,15 +101,41 @@ public class AI {
                 return (delta / (24 * 60 * 60 * 1000)) + " дней до зачета";
             }
         });
+        put("weather?", new AnswerObject() {
+            @Override
+            public String answer() {
+                return "Не знхааю!";
+            }
+        });
     }};
 
     // Получение ответа от ИИ
-    public static String getAnswer(String question) {
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public static void getAnswer(String question, final Consumer<String> callback) {
         question = question.toLowerCase();
+
         if (phrases.get(question) != null)
-            return phrases.get(question).answer();
+            callback.accept(phrases.get(question).answer());
         else
-            return "Вопрос понял. Думаю...";
+        {
+            Pattern cityPattern = Pattern.compile("weather in (\\p{L}+)", Pattern.CASE_INSENSITIVE);
+            //Pattern cityPattern = Pattern.compile("погода в городе (\\p{L}+)", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = cityPattern.matcher(question);
+            if (matcher.find()) {
+                String cityName = matcher.group(1);
+                ForecastToString.getForecast(cityName, new Consumer<String>() {
+                    @Override
+                    public void accept(String s) {
+                        callback.accept(s);
+                    }
+                });
+            }
+            else
+            {
+                callback.accept("Не понял вопрос");
+            }
+        }
+
     }
 }
 

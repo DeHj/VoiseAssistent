@@ -11,12 +11,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,23 +56,42 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        // temp:
-        String question = "Привет";
-        messageListAdapter.messageList.add(new Message(question, true));
+        messageListAdapter.messageList.add(new Message("Привет!", false));
     }
 
     protected void onSend() {
-        String question = questionText.getText().toString();
-        messageListAdapter.messageList.add(new Message(question, true));
+        final String question = questionText.getText().toString();
 
-        String answer = AI.getAnswer(question);
-        messageListAdapter.messageList.add(new Message(answer, false));
-        messageListAdapter.notifyDataSetChanged();
+        AI.getAnswer(question, new Consumer<String>() {
+            @Override
+            public void accept(String answer) {
+                messageListAdapter.messageList.add(new Message(question, true));
+                messageListAdapter.messageList.add(new Message(answer, false));
+                messageListAdapter.notifyDataSetChanged();
+                textToSpeech.speak(answer, TextToSpeech.QUEUE_FLUSH, null, null);
+                chatMessageList.scrollToPosition(messageListAdapter.messageList.size() - 1);
+                questionText.setText("");
+            }
+        });
 
-        textToSpeech.speak(answer, TextToSpeech.QUEUE_FLUSH, null, null);
-        chatMessageList.scrollToPosition(messageListAdapter.messageList.size() - 1);
-        questionText.setText("");
+        /*
+        try {
+            AI.getAnswer(question, new Consumer<String>() {
+                @Override
+                public void accept(String answer) {
+                    messageListAdapter.messageList.add(new Message(question, true));
+                    messageListAdapter.messageList.add(new Message(answer, false));
+                    messageListAdapter.notifyDataSetChanged();
+                    textToSpeech.speak(answer, TextToSpeech.QUEUE_FLUSH, null, null);
+                    chatMessageList.scrollToPosition(messageListAdapter.messageList.size() - 1);
+                    questionText.setText("");
+                }
+            });
+        }
+        catch (ParseException e) {
+            e.printStackTrace();
+        }
+        */
     }
 
     // Сохранение состояния при повороте
