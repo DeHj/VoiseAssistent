@@ -3,4 +3,6 @@
     <string name="UserImageDesc">Something</string>
     <string name="userName">userName</string>
     <string name="assistantName">assistantName</string>
+    <string name="DayThemeType">Дневная тема</string>
+    <string name="NightThemeType">Ночная тема</string>
 </resources>

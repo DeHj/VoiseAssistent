@@ -15,6 +15,12 @@ public class Message implements Parcelable {
     public Boolean isSend;
     private DateFormat dateFormat = new SimpleDateFormat("HH:mm dd.MM.YYYY");
 
+    public  Message(MessageEntity entity) throws ParseException {
+        this.text = entity.text;
+        this.date = (new SimpleDateFormat("HH:mm dd.MM.YYYY")).parse(entity.date);
+        this.isSend = (entity.isSend == 1);
+    }
+
     public Message(String text, Boolean isSend) {
         this.text = text;
         this.isSend = isSend;
